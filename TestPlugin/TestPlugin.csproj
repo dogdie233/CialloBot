@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageOutputPath>$(OutputPath)</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../CialloBot/CialloBot.csproj"></ProjectReference>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PluginFolder>plugins</PluginFolder>
+    <PluginPath>../CialloBot/$(OutputPath)$(PluginFolder)</PluginPath>
+  </PropertyGroup>
+
+  <Target Name="Copy Test Plugin" AfterTargets="PostBuildEvent">
+    <MakeDir Directories="../CialloBot/$(OutputPath)$(PluginFolder)"></MakeDir>
+    <Copy SourceFiles="$(OutputPath)TestPlugin.dll;$(OutputPath)TestPlugin.pdb" DestinationFolder="../CialloBot/$(OutputPath)$(PluginFolder)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(OutputPath)TestPlugin.deps.json" Condition="Exists('$(OutputPath)TestPlugin.deps.json')" DestinationFolder="../CialloBot/$(OutputPath)$(PluginFolder)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

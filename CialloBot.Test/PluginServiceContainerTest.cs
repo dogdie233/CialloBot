@@ -18,7 +18,7 @@ namespace CialloBot.Test
             var getType = regType;
             var impl = new Class1A();
 
-            provider.Register(regType, impl);
+            provider.Register("test", regType, impl);
             var serviceGot = provider.GetService(getType);
 
             Assert.Same(impl, serviceGot);
@@ -32,7 +32,7 @@ namespace CialloBot.Test
             var getType = typeof(Class1A);
             var impl = new Class1A();
 
-            provider.Register(regType, impl);
+            provider.Register("test", regType, impl);
             var serviceGot = provider.GetService(getType);
 
             Assert.Null(serviceGot);
@@ -46,7 +46,7 @@ namespace CialloBot.Test
             var getType = typeof(PureClass);
             var impl = new PureClass();
 
-            provider.Register(regType, impl);
+            provider.Register("test", regType, impl);
             var serviceGot = provider.GetService(getType);
 
             Assert.Null(serviceGot);
@@ -59,7 +59,7 @@ namespace CialloBot.Test
             var serviceType = typeof(IInterface1);
             var impl = new PureClass();
 
-            provider.Register(serviceType, impl);
+            provider.Register("test", serviceType, impl);
             var serviceGot = provider.GetRequiredService(serviceType);
 
             Assert.Same(impl, serviceGot);
@@ -75,8 +75,8 @@ namespace CialloBot.Test
             var implB = new Class1A();
             var privateContainer = GetContainer(provider);
 
-            provider.Register(regType, implA);
-            provider.Register(regType, implB);
+            provider.Register("test", regType, implA);
+            provider.Register("test", regType, implB);
             var serviceGot = provider.GetService(getType);
 
             Assert.Same(implB, serviceGot);
@@ -92,7 +92,7 @@ namespace CialloBot.Test
                 var regType = typeof(PureClass);
                 var impl = new PureClass();
 
-                provider.Register(regType, impl);
+                provider.Register("test", regType, impl);
                 var serviceGot = provider.GetRequiredService(serviceType);
             });
         }
@@ -107,7 +107,7 @@ namespace CialloBot.Test
                 var getType = typeof(PureClass);
                 var impl = new PureClass();
 
-                provider.Register(regType, impl);
+                provider.Register("test", regType, impl);
                 var serviceGot = provider.GetRequiredService(getType);
             });
         }
@@ -118,26 +118,29 @@ namespace CialloBot.Test
             var provider = new PluginServiceContainer();
             var impl = new PureClass();
 
-            provider.UnregisterService(impl);
+            provider.Unregister("notfound");
         }
 
         [Fact]
-        public void AddAndRemoveService_Ok()
+        public void SameRegistrarRegisterTwoServiceAndRemove()
         {
             var provider = new PluginServiceContainer();
             var regType = typeof(IInterface1);
-            var getType = typeof(Class1A);
-            var impl = new Class1A();
+            var getType = regType;
+            var implA = new Class1A();
+            var implB = new Class1A();
             var privateContainer = GetContainer(provider);
+            var registrarId = "test";
 
-            provider.Register(regType, impl);
-            provider.UnregisterService(impl);
+            provider.Register(registrarId, regType, implA);
+            provider.Register(registrarId, regType, implB);
+            provider.Unregister(registrarId);
 
             Assert.Empty(privateContainer);
         }
 
         [Fact]
-        public void RegisterTwoServiceWithSameServiceTypeAndRemoveFirstAndGet_ReturnSecondService()
+        public void DifferentRegistrarRegisterSameServiceAndRemove()
         {
             var provider = new PluginServiceContainer();
             var regType = typeof(IInterface1);
@@ -146,9 +149,9 @@ namespace CialloBot.Test
             var implB = new Class1A();
             var privateContainer = GetContainer(provider);
 
-            provider.Register(regType, implA);
-            provider.Register(regType, implB);
-            provider.UnregisterService(implA);
+            provider.Register("test", regType, implA);
+            provider.Register("test2", regType, implB);
+            provider.Unregister("test");
             var serviceGot = provider.GetService(getType);
 
             Assert.Same(implB, serviceGot);

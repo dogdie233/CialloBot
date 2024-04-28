@@ -1,13 +1,14 @@
-﻿using CommunityToolkit.Diagnostics;
+﻿using CialloBot.Utils;
 
+using CommunityToolkit.Diagnostics;
+
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 
-using static CialloBot.Exceptions;
-
-namespace CialloBot;
+namespace CialloBot.Plugin;
 
 public record struct PluginInfo(string Id, string Name, string Path)
 {
@@ -16,10 +17,11 @@ public record struct PluginInfo(string Id, string Name, string Path)
 }
 public record struct LoadedPlugin(PluginInfo Info, PluginLoadContext Context, IPlugin Instance, bool IsDead);
 
-public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> logger, IObjectActivator activator)
+public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> logger, IObjectActivator activator, IServiceProvider serviceProvider)
 {
     private List<LoadedPlugin> loadedPlugins = new();
     private AssemblyLoadContext defaultDependencyContext = AssemblyLoadContext.Default;
+    private PluginServiceContainer pluginServiceContainer = new();
 
     public IReadOnlyList<LoadedPlugin> LoadedPlugins => loadedPlugins.AsReadOnly();
 
@@ -37,13 +39,15 @@ public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> log
 
         var context = new PluginLoadContext(ref pluginInfo, defaultDependencyContext, this, pluginHelper);
         var assembly = context.LoadFromAssemblyPath(pluginPath);
-        if (activator.TryCreate(classInfo.Type) is not IPlugin instance)
+        var proxy = new PluginServiceProviderProxy(pluginServiceContainer, (IKeyedServiceProvider)serviceProvider, pluginInfo.Id);
+        if (activator.TryCreate(classInfo.Type, [proxy]) is not IPlugin instance)
             throw new Exception($"Couldn't create plugin instance '{classInfo.Type.Name}' for plugin {pluginPath}");
 
         var loadedPlugin = new LoadedPlugin(pluginInfo, context, instance, false);
         try
         {
             loadedPlugin.Instance.Startup();
+            proxy.RegisterPluginService(classInfo.Type, loadedPlugin.Instance);
             loadedPlugins.Add(loadedPlugin);
         }
         catch (Exception ex)
@@ -62,9 +66,10 @@ public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> log
         var plugin = loadedPlugins[pluginIndex];
         if (!plugin.IsDead)
             plugin.Instance?.Shutdown();
+        pluginServiceContainer.Unregister(pluginId);
         plugin.Context?.Unload();
         loadedPlugins.RemoveAt(pluginIndex);
-        
+
         // 其他依赖于这个插件的插件，又如何呢？
     }
 }

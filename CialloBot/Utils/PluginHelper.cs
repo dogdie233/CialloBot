@@ -1,10 +1,12 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using CialloBot.Plugin;
+
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace CialloBot;
+namespace CialloBot.Utils;
 
 public record struct PluginClassInfo(Type Type, PluginAttribute Attribute);
 

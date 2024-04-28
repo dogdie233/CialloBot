@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Hosting;
 
-namespace CialloBot;
+namespace CialloBot.Services;
 
 public class LagrangeHostedService : IHostedService
 {

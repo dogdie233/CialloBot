@@ -1,4 +1,4 @@
-﻿namespace CialloBot;
+﻿namespace CialloBot.Plugin;
 
 [AttributeUsage(AttributeTargets.Class)]
 public class PluginAttribute(string id, string name) : Attribute

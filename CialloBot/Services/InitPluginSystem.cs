@@ -1,9 +1,11 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using CialloBot.Plugin;
+using CialloBot.Utils;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using System.Text;
 
-namespace CialloBot;
+namespace CialloBot.Services;
 
 public class InitPluginSystem(PluginManager pluginManager, ILogger<InitPluginSystem> logger, PluginHelper pluginHelper) : IHostedService
 {

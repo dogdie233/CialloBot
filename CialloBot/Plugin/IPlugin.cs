@@ -1,4 +1,4 @@
-﻿namespace CialloBot
+﻿namespace CialloBot.Plugin
 {
     public interface IPlugin
     {

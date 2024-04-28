@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace CialloBot;
+namespace CialloBot.Services;
 
 public class CialloService(ILogger<CialloService> logger)
 {

@@ -1,7 +1,8 @@
 ﻿using System.Reflection;
 using System.Runtime.Loader;
+using CialloBot.Utils;
 
-namespace CialloBot;
+namespace CialloBot.Plugin;
 
 public class PluginLoadContext : AssemblyLoadContext
 {
@@ -18,7 +19,7 @@ public class PluginLoadContext : AssemblyLoadContext
         this.defaultDependencyContext = defaultDependencyContext;
         this.pluginManager = pluginManager;
         this.pluginHelper = pluginHelper;
-        this.dependencyResolver = new(info.Path);
+        dependencyResolver = new(info.Path);
     }
 
     protected override Assembly? Load(AssemblyName assemblyName)

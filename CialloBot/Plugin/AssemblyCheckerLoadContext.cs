@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.Loader;
 
-namespace CialloBot;
+namespace CialloBot.Plugin;
 
 public class AssemblyCheckerLoadContext : AssemblyLoadContext
 {
@@ -14,7 +14,7 @@ public class AssemblyCheckerLoadContext : AssemblyLoadContext
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
-        foreach (var assembly in AssemblyLoadContext.Default.Assemblies)
+        foreach (var assembly in Default.Assemblies)
         {
             if (AssemblyName.ReferenceMatchesDefinition(assemblyName, assembly.GetName(false)))
                 return assembly;  // Loaded in default context

@@ -1,28 +1,26 @@
 ﻿using CommunityToolkit.Diagnostics;
 
-using Microsoft.Extensions.DependencyInjection;
-
 using System.Diagnostics.CodeAnalysis;
 
-namespace CialloBot;
+namespace CialloBot.Plugin;
 
-public class PluginServiceProvider : IServiceProvider, ISupportRequiredService, IKeyedServiceProvider
+public class PluginServiceContainer
 {
-    public record struct ServiceDescription(object service, object? key);
+    public record struct ServiceDescription(string RegistrarId, object Service, object? Key);
 
-    private Dictionary<Type, List<ServiceDescription>> servicesContainer;
-    private ReaderWriterLockSlim rwLock;
+    private readonly Dictionary<Type, List<ServiceDescription>> servicesContainer;
+    private readonly ReaderWriterLockSlim rwLock;
 
-    internal PluginServiceProvider()
+    internal PluginServiceContainer()
     {
         servicesContainer = new();
         rwLock = new();
     }
 
-    internal void RegisterService(Type type, object service)
-        => RegisterKeyedService(type, service, null);
+    public void Register(string registrarId, Type type, object service)
+        => RegisterKeyed(registrarId, type, service, null);
 
-    internal void RegisterKeyedService(Type type, object service, object? key)
+    public void RegisterKeyed(string registrarId, Type type, object service, object? key)
     {
         Guard.IsNotNull(type);
         Guard.IsNotNull(service);
@@ -36,7 +34,7 @@ public class PluginServiceProvider : IServiceProvider, ISupportRequiredService, 
                 list = new();
                 servicesContainer.Add(type, list);
             }
-            list.Add(new(service, key));
+            list.Add(new(registrarId, service, key));
             rwLock.ExitWriteLock();
         }
         finally
@@ -45,7 +43,7 @@ public class PluginServiceProvider : IServiceProvider, ISupportRequiredService, 
         }
     }
 
-    public void UnregisterService(object obj)
+    public void Unregister(string registrarId)
     {
         var waitingRemoveKeys = new List<Type>();
         rwLock.EnterWriteLock();
@@ -55,7 +53,7 @@ public class PluginServiceProvider : IServiceProvider, ISupportRequiredService, 
             {
                 for (int i = 0; i < kvp.Value.Count; i++)
                 {
-                    if (obj == kvp.Value[i].service)
+                    if (registrarId == kvp.Value[i].RegistrarId)
                         kvp.Value.RemoveAt(i--);
                 }
                 if (kvp.Value.Count == 0)
@@ -88,8 +86,8 @@ public class PluginServiceProvider : IServiceProvider, ISupportRequiredService, 
 
             for (int i = serviceList.Count - 1; i >= 0; i--)
             {
-                if (serviceList[i].key == serviceKey)
-                    return serviceList[i].service;
+                if (serviceList[i].Key == serviceKey)
+                    return serviceList[i].Service;
             }
             return null;
         }

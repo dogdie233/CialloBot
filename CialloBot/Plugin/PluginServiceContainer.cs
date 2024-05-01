@@ -11,7 +11,7 @@ public class PluginServiceContainer
     private readonly Dictionary<Type, List<ServiceDescription>> servicesContainer;
     private readonly ReaderWriterLockSlim rwLock;
 
-    internal PluginServiceContainer()
+    public PluginServiceContainer()
     {
         servicesContainer = new();
         rwLock = new();

@@ -7,9 +7,9 @@ using System.Text;
 
 namespace CialloBot.Services;
 
-public class InitPluginSystem(PluginManager pluginManager, ILogger<InitPluginSystem> logger, PluginHelper pluginHelper) : IHostedService
+public class InitPluginSystem(PluginManager pluginManager, ILogger<InitPluginSystem> logger, PluginHelper pluginHelper)
 {
-    public async Task StartAsync(CancellationToken cancellationToken)
+    internal async Task Init()
     {
         Console.WriteLine("Init Plugins !!!");
         var plugins = await pluginHelper.FindAllInPluginFolderAsync();
@@ -34,10 +34,5 @@ public class InitPluginSystem(PluginManager pluginManager, ILogger<InitPluginSys
             logger.LogInformation($"Load plugin {p.Path}");
             pluginManager.LoadPlugin(p.Path);
         }
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException();
     }
 }

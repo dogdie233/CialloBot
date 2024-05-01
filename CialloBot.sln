@@ -3,11 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.34804.81
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CialloBot", "CialloBot\CialloBot.csproj", "{7545B3D5-14FE-42B0-9C18-C3D930E361AC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CialloBot", "CialloBot\CialloBot.csproj", "{7545B3D5-14FE-42B0-9C18-C3D930E361AC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CialloBot.Test", "CialloBot.Test\CialloBot.Test.csproj", "{CC93F940-DEE3-4ACC-A95E-5D6E2AD050DF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CialloBot.Test", "CialloBot.Test\CialloBot.Test.csproj", "{CC93F940-DEE3-4ACC-A95E-5D6E2AD050DF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestPlugin", "TestPlugin\TestPlugin.csproj", "{C1CCE5AE-04BE-465B-9B6C-975F6E026C03}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestPlugin", "TestPlugin\TestPlugin.csproj", "{C1CCE5AE-04BE-465B-9B6C-975F6E026C03}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lagrange.Core", "Lagrange.Core\Lagrange.Core\Lagrange.Core.csproj", "{16D1BAC2-2F8B-4DDD-81C6-B3AD7D2BE46B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{C1CCE5AE-04BE-465B-9B6C-975F6E026C03}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C1CCE5AE-04BE-465B-9B6C-975F6E026C03}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C1CCE5AE-04BE-465B-9B6C-975F6E026C03}.Release|Any CPU.Build.0 = Release|Any CPU
+		{16D1BAC2-2F8B-4DDD-81C6-B3AD7D2BE46B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{16D1BAC2-2F8B-4DDD-81C6-B3AD7D2BE46B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{16D1BAC2-2F8B-4DDD-81C6-B3AD7D2BE46B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{16D1BAC2-2F8B-4DDD-81C6-B3AD7D2BE46B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

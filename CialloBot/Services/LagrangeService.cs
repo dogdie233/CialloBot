@@ -40,7 +40,7 @@ public class LagrangeService : IDisposable
         this.setting = setting;
     }
 
-    public BotContext? BotContext => botContext;
+    public BotContext BotContext => botContext!;
 
     public void Dispose()
     {
@@ -114,8 +114,8 @@ public class LagrangeService : IDisposable
     {
         botLogger.Log(@event.Level switch
         {
-            BotLogLevel.Debug => LogLevel.Debug,
-            BotLogLevel.Verbose => LogLevel.Information,
+            BotLogLevel.Debug => LogLevel.Trace,
+            BotLogLevel.Verbose => LogLevel.Debug,
             BotLogLevel.Information => LogLevel.Information,
             BotLogLevel.Warning => LogLevel.Warning,
             BotLogLevel.Fatal => LogLevel.Error,

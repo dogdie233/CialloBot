@@ -1,16 +1,20 @@
 ﻿using CialloBot.Plugin;
 
+using Lagrange.Core.Common;
+
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace CialloBot.Utils;
 
 public record struct PluginClassInfo(Type Type, PluginAttribute Attribute);
 
-public class PluginHelper(ILogger<PluginHelper> logger, IHostEnvironment hostEnvironment)
+public class PluginHelper(ILogger<PluginHelper> logger, IHostEnvironment hostEnvironment, IServiceProvider serviceProvider)
 {
     public static readonly string pluginFolder = "plugins";
     public ILogger<PluginHelper> logger = logger;
@@ -44,6 +48,7 @@ public class PluginHelper(ILogger<PluginHelper> logger, IHostEnvironment hostEnv
         pluginInfoUnion = null;
         assembly = null;
         context.Unload();
+
         return result;
     }
 
@@ -81,5 +86,32 @@ public class PluginHelper(ILogger<PluginHelper> logger, IHostEnvironment hostEnv
             logger.LogDebug($"Scan finished, total {count} plugins");
             return plugins;
         });
+    }
+
+    internal async Task InitPlugins()
+    {
+        var plugins = await FindAllInPluginFolderAsync();
+
+        var sb = new StringBuilder();
+        sb = sb.Append($"Find {plugins.Count} plugins in {PluginsFolderPath}");
+        AddLineFormat("ID", "Name");
+        foreach (var p in plugins)
+            AddLineFormat(p.Id, p.Name);
+
+        void AddLineFormat(string id, string name)
+        {
+            sb.AppendLine();
+            sb.Append(id.PadRight(48, ' '));
+            sb.Append(' ', 4);
+            sb.Append(name);
+        }
+        logger.LogInformation(sb.ToString());
+
+        var pm = serviceProvider.GetRequiredService<PluginManager>();
+        foreach (var p in plugins)
+        {
+            logger.LogInformation($"Load plugin {p.Path}");
+            pm.LoadPlugin(p.Path);
+        }
     }
 }

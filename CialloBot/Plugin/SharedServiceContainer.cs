@@ -4,23 +4,23 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace CialloBot.Plugin;
 
-public class PluginServiceContainer
+public class SharedServiceContainer
 {
     public record struct ServiceDescription(string RegistrarId, object Service, object? Key);
 
     private readonly Dictionary<Type, List<ServiceDescription>> servicesContainer;
     private readonly ReaderWriterLockSlim rwLock;
 
-    public PluginServiceContainer()
+    public SharedServiceContainer()
     {
         servicesContainer = new();
         rwLock = new();
     }
 
-    public void Register(string registrarId, Type type, object service)
-        => RegisterKeyed(registrarId, type, service, null);
+    internal void RegisterService(string registrarId, Type type, object service)
+        => RegisterKeyedService(registrarId, type, service, null);
 
-    public void RegisterKeyed(string registrarId, Type type, object service, object? key)
+    internal void RegisterKeyedService(string registrarId, Type type, object service, object? key)
     {
         Guard.IsNotNull(type);
         Guard.IsNotNull(service);
@@ -43,7 +43,7 @@ public class PluginServiceContainer
         }
     }
 
-    public void Unregister(string registrarId)
+    internal void Unregister(string registrarId)
     {
         var waitingRemoveKeys = new List<Type>();
         rwLock.EnterWriteLock();
@@ -68,13 +68,7 @@ public class PluginServiceContainer
         }
     }
 
-    public object? GetService(Type serviceType)
-        => GetKeyedService(serviceType, null);
-
-    public object GetRequiredService(Type serviceType)
-        => GetRequiredKeyedService(serviceType, null);
-
-    public object? GetKeyedService(Type serviceType, object? serviceKey)
+    internal object? GetKeyedService(Type serviceType, object? serviceKey)
     {
         Guard.IsNotNull(serviceType);
 
@@ -97,14 +91,8 @@ public class PluginServiceContainer
         }
     }
 
-    public object GetRequiredKeyedService(Type serviceType, object? serviceKey)
-    {
-        var service = GetKeyedService(serviceType, serviceKey);
-        if (service == null)
-            ThrowServiceNotRegistered(serviceType);
-
-        return service;
-    }
+    internal object? GetService(Type serviceType)
+        => GetKeyedService(serviceType, null);
 
     [DoesNotReturn]
     internal static void ThrowServiceNotRegistered(Type serviceType)

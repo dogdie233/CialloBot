@@ -1,4 +1,6 @@
-﻿using CialloBot.Utils;
+﻿using CialloBot.Plugin.ServiceWrapper;
+using CialloBot.Services;
+using CialloBot.Utils;
 
 using CommunityToolkit.Diagnostics;
 
@@ -15,39 +17,58 @@ public record struct PluginInfo(string Id, string Name, string Path)
     public static PluginInfo CreateFromAttribute(PluginAttribute attribute, string path)
         => new PluginInfo(attribute.id, attribute.name, path);
 }
-public record struct LoadedPlugin(PluginInfo Info, PluginLoadContext Context, IPlugin Instance, bool IsDead);
+public record struct LoadedPlugin(PluginInfo Info, PluginLoadContext Context, ServiceProvider ScopedServices, IPlugin Instance, bool IsDead);
 
-public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> logger, IObjectActivator activator, IServiceProvider serviceProvider)
+public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> logger, SharedServiceContainer sharedServiceContainer, IServiceProvider provider) : IDisposable
 {
     private List<LoadedPlugin> loadedPlugins = new();
     private AssemblyLoadContext defaultDependencyContext = AssemblyLoadContext.Default;
-    private PluginServiceContainer pluginServiceContainer = new();
 
     public IReadOnlyList<LoadedPlugin> LoadedPlugins => loadedPlugins.AsReadOnly();
 
+    public void Dispose()
+    {
+        var plugins = loadedPlugins.Select(plugin => plugin.Info.Id).ToArray();
+        foreach (var plugin in plugins)
+            UnloadPlugin(plugin);
+    }
+
     public void LoadPlugin(string pluginPath)
     {
-        if (!pluginHelper.DetectPlugin(pluginPath).TryOut(out var classInfo))
+        // Detect plugin
+        var pluginAttribute = pluginHelper.DetectPlugin(pluginPath);
+        if (pluginAttribute is null)
             ThrowHelper.ThrowInvalidOperationException($"Couldn't detect the plugin info in {pluginPath}");
 
-        var pluginInfo = PluginInfo.CreateFromAttribute(classInfo.Attribute, pluginPath);
+        // Unload old plugin
+        var pluginInfo = PluginInfo.CreateFromAttribute(pluginAttribute, pluginPath);
         if (loadedPlugins.Exists(p => p.Info.Id == pluginInfo.Id))
         {
             logger.LogWarning($"plugin {pluginInfo.Id} have been loaded, unloading old");
             UnloadPlugin(pluginInfo.Id);
         }
 
+        // Load plugin assembly
         var context = new PluginLoadContext(ref pluginInfo, defaultDependencyContext, this, pluginHelper);
         var assembly = context.LoadFromAssemblyPath(pluginPath);
-        var proxy = new PluginServiceProviderProxy(pluginServiceContainer, (IKeyedServiceProvider)serviceProvider, pluginInfo.Id);
-        if (activator.TryCreate(classInfo.Type, [proxy]) is not IPlugin instance)
-            throw new Exception($"Couldn't create plugin instance '{classInfo.Type.Name}' for plugin {pluginPath}");
 
-        var loadedPlugin = new LoadedPlugin(pluginInfo, context, instance, false);
+        // Create plugin service scoped provider
+        var pluginType = pluginHelper.FindPluginType(assembly)!;
+        var collection = new ServiceCollection();
+        UseDefaultServices(collection, pluginType, pluginAttribute);
+        collection.AddSingleton(typeof(IPlugin), pluginType);
+        collection.AddSingleton(pluginType);
+        pluginHelper.ConfigPluginServiceCollection(pluginType, collection);
+
+        // Create plugin instance
         try
         {
-            loadedPlugin.Instance.Startup();
-            proxy.RegisterPluginService(classInfo.Type, loadedPlugin.Instance);
+            var pluginServiceProvider = collection.BuildServiceProvider();
+            var instance = pluginServiceProvider.GetRequiredService<IPlugin>();
+
+            var loadedPlugin = new LoadedPlugin(pluginInfo, context, pluginServiceProvider, instance, false);
+
+            instance.Startup();
             loadedPlugins.Add(loadedPlugin);
         }
         catch (Exception ex)
@@ -65,11 +86,26 @@ public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> log
 
         var plugin = loadedPlugins[pluginIndex];
         if (!plugin.IsDead)
-            plugin.Instance?.Shutdown();
-        pluginServiceContainer.Unregister(pluginId);
-        plugin.Context?.Unload();
+            plugin.Instance.Shutdown();
+        sharedServiceContainer.Unregister(pluginId);
+        plugin.ScopedServices.Dispose();
+        plugin.Context.Unload();
         loadedPlugins.RemoveAt(pluginIndex);
 
         // 其他依赖于这个插件的插件，又如何呢？
+    }
+
+    private void UseDefaultServices(IServiceCollection collection, Type pluginType, PluginAttribute attribute)
+    {
+        var sharedServiceContainerProxy = new SharedServiceContainerProxy(sharedServiceContainer, attribute.id);
+
+        collection.AddLogging();
+
+        collection.AddSingleton<SharedServiceContainerProxy>(sharedServiceContainerProxy);
+        collection.AddSingleton<ISharedServiceContainer>(sharedServiceContainerProxy);
+        collection.AddTransient(typeof(SharedService<>));
+        collection.AddSingleton<LagrangeService>(provider.GetRequiredService<LagrangeService>());
+
+        collection.AddSingleton<PluginAttribute>(attribute);
     }
 }

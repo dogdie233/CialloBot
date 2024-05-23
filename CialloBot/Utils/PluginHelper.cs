@@ -1,7 +1,5 @@
 ﻿using CialloBot.Plugin;
 
-using Lagrange.Core.Common;
-
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -11,9 +9,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace CialloBot.Utils;
-
-public record struct PluginClassInfo(Type Type, PluginAttribute Attribute);
-
 public class PluginHelper(ILogger<PluginHelper> logger, IHostEnvironment hostEnvironment, IServiceProvider serviceProvider)
 {
     public static readonly string pluginFolder = "plugins";
@@ -23,35 +18,60 @@ public class PluginHelper(ILogger<PluginHelper> logger, IHostEnvironment hostEnv
     public string PluginsFolderPath => Path.Combine(hostEnvironment.ContentRootPath, pluginFolder);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public PluginClassInfo? DetectPlugin(string dllPath)
+    public PluginAttribute? DetectPlugin(string dllPath)
     {
         var context = new AssemblyCheckerLoadContext(dllPath);
         var assembly = context.LoadFromAssemblyPath(dllPath);
         if (assembly == null)
             throw new Exception($"Couldn't load plugin {dllPath}");
 
-        var pluginInfoUnion = assembly.GetTypes()
+        var plugins = assembly.GetTypes()
             .Where(type => type.IsAssignableTo(typeof(IPlugin)))
-            .Select(type => new PluginClassInfo(type, type.GetCustomAttribute<PluginAttribute>()!))
-            .Where(info => info.Attribute is not null);
+            .Select(type => type.GetCustomAttribute<PluginAttribute>())
+            .Where(attr => attr is not null);
 
-        PluginClassInfo? result = null;
-        foreach (var union in pluginInfoUnion)
+        PluginAttribute? result = null;
+        foreach (var plugin in plugins)
         {
-            if (!result.HasValue)
+            if (result is null)
             {
-                result = union!;
+                result = plugin;
                 continue;
             }
             return null;  // Have more than 1 plugin class
         }
-        pluginInfoUnion = null;
+
+        plugins = null;
         assembly = null;
         context.Unload();
 
         return result;
     }
 
+    public Type? FindPluginType(Assembly assembly)
+    {
+        var plugins = assembly.GetTypes()
+            .Where(type => type.IsAssignableTo(typeof(IPlugin)))
+            .Where(type => type.GetCustomAttribute<PluginAttribute>() != null);
+
+        Type? type = null;
+        foreach (var plugin in plugins)
+        {
+            if (type is null)
+            {
+                type = plugin;
+                continue;
+            }
+            return null;  // Have more than 1 plugin class
+        }
+
+        return type;
+    }
+
+    /// <summary>
+    /// 异步查找插件文件夹下的所有插件
+    /// </summary>
+    /// <returns> 一个列表包含所有插件dll的信息 </returns>
     public Task<List<PluginInfo>> FindAllInPluginFolderAsync()
     {
         logger.LogTrace("Refresh Info List");
@@ -67,10 +87,11 @@ public class PluginHelper(ILogger<PluginHelper> logger, IHostEnvironment hostEnv
             var count = 0;
             foreach (var file in files)
             {
-                if (!DetectPlugin(file).TryOut(out var classInfo))
+                var attribute = DetectPlugin(file);
+                if (attribute == null)
                     continue;
 
-                var info = PluginInfo.CreateFromAttribute(classInfo.Attribute, file);
+                var info = PluginInfo.CreateFromAttribute(attribute, file);
                 var index = plugins.FindIndex(ifo => ifo.Id == info.Id);
                 if (index == -1)
                     plugins.Add(info);
@@ -111,7 +132,21 @@ public class PluginHelper(ILogger<PluginHelper> logger, IHostEnvironment hostEnv
         foreach (var p in plugins)
         {
             logger.LogInformation($"Load plugin {p.Path}");
-            pm.LoadPlugin(p.Path);
+            try
+            {
+                pm.LoadPlugin(p.Path);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, $"Load plugin {p.Path} failed");
+            }
         }
+    }
+
+    internal void ConfigPluginServiceCollection(Type pluginType, IServiceCollection collection)
+    {
+        var method = pluginType.GetMethod(nameof(IPlugin.ConfigService), BindingFlags.Static | BindingFlags.Public)!;
+        if (method != null)
+            method.Invoke(null, [collection]);
     }
 }

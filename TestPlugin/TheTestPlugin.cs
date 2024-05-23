@@ -18,12 +18,11 @@ public class TheTestPlugin : IPlugin
     private readonly ILogger<TheTestPlugin> logger;
     private readonly LagrangeService lagrangeService;
 
-    public TheTestPlugin(IPluginServiceContainer serviceProvider)
+    public TheTestPlugin(ILogger<TheTestPlugin> logger, LagrangeService lagrangeService)
     {
-        logger = serviceProvider.GetRequiredService<ILogger<TheTestPlugin>>();
-        lagrangeService = serviceProvider.GetRequiredService<LagrangeService>();
+        this.logger = logger;
+        this.lagrangeService = lagrangeService;
     }
-
 
     public void Startup()
     {

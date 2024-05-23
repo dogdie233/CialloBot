@@ -86,7 +86,7 @@ public class LagrangePersistentService(IOptions<LagrangeSettingModel> option, IL
     {
         if (validated)
             return;
-        
+
         ValidatePath();
         validated = true;
     }

@@ -1,6 +1,7 @@
-﻿using System.Reflection;
+﻿using CialloBot.Utils;
+
+using System.Reflection;
 using System.Runtime.Loader;
-using CialloBot.Utils;
 
 namespace CialloBot.Plugin;
 
@@ -29,6 +30,7 @@ public class PluginLoadContext : AssemblyLoadContext
             if (AssemblyName.ReferenceMatchesDefinition(assemblyName, loadedDependencyAssembly.GetName()))
                 return loadedDependencyAssembly;
         }
+
         foreach (var loadedPlugin in pluginManager.LoadedPlugins)
         {
             var pluginAssembly = loadedPlugin.Instance.GetType().Assembly;
@@ -39,13 +41,11 @@ public class PluginLoadContext : AssemblyLoadContext
         // Dependency have not be loaded
         var path = dependencyResolver.ResolveAssemblyToPath(assemblyName);
         if (path == null)  // Couldn't find dll path
-            throw new Exception($"Couldn't resolve the dependency assembly {assemblyName}");
+            throw new FileNotFoundException($"Couldn't resolve the dependency assembly", assemblyName.ToString());
 
         var pluginInfo = pluginHelper.DetectPlugin(path);
         if (pluginInfo != null)  // It's a plugin
             pluginManager.LoadPlugin(path);
-        else  // It's a normal dependency, just put into the default context
-            defaultDependencyContext.LoadFromAssemblyPath(path);
 
         return null;
     }

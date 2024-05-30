@@ -14,12 +14,12 @@ public class App(LagrangeService lagrangeService, ILogger<App> logger, PluginHel
         await lagrangeService.Login();
         logger.LogInformation("Login succeed, loading plugins ...");
         await pluginHelper.InitPlugins();
-        while (!cancellationToken.IsCancellationRequested) ;
-        lagrangeService.BotContext?.Dispose();
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
+        pluginHelper.UnloadAllPlugin();
+
         lagrangeService.BotContext?.Dispose();
         return Task.CompletedTask;
     }

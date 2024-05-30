@@ -1,5 +1,4 @@
 ﻿using CialloBot.Plugin.ServiceWrapper;
-using CialloBot.Services;
 using CialloBot.Utils;
 
 using CommunityToolkit.Diagnostics;
@@ -12,26 +11,19 @@ using System.Runtime.Loader;
 
 namespace CialloBot.Plugin;
 
-public record struct PluginInfo(string Id, string Name, string Path)
+public readonly record struct PluginInfo(string Id, string Name, string Path)
 {
     public static PluginInfo CreateFromAttribute(PluginAttribute attribute, string path)
         => new PluginInfo(attribute.id, attribute.name, path);
 }
-public record struct LoadedPlugin(PluginInfo Info, PluginLoadContext Context, ServiceProvider ScopedServices, IPlugin Instance, bool IsDead);
+public readonly record struct LoadedPlugin(PluginInfo Info, PluginLoadContext Context, ServiceProvider ScopedServices, IPlugin Instance);
 
-public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> logger, SharedServiceContainer sharedServiceContainer, IServiceProvider provider) : IDisposable
+public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> logger, SharedServiceContainer sharedServiceContainer, IServiceProvider provider)
 {
     private List<LoadedPlugin> loadedPlugins = new();
     private AssemblyLoadContext defaultDependencyContext = AssemblyLoadContext.Default;
 
     public IReadOnlyList<LoadedPlugin> LoadedPlugins => loadedPlugins.AsReadOnly();
-
-    public void Dispose()
-    {
-        var plugins = loadedPlugins.Select(plugin => plugin.Info.Id).ToArray();
-        foreach (var plugin in plugins)
-            UnloadPlugin(plugin);
-    }
 
     public void LoadPlugin(string pluginPath)
     {
@@ -56,9 +48,9 @@ public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> log
         var pluginType = pluginHelper.FindPluginType(assembly)!;
         var collection = new ServiceCollection();
         UseDefaultServices(collection, pluginType, pluginAttribute);
+        pluginHelper.ConfigPluginServiceCollection(pluginType, collection);
         collection.AddSingleton(typeof(IPlugin), pluginType);
         collection.AddSingleton(pluginType);
-        pluginHelper.ConfigPluginServiceCollection(pluginType, collection);
 
         // Create plugin instance
         try
@@ -66,7 +58,7 @@ public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> log
             var pluginServiceProvider = collection.BuildServiceProvider();
             var instance = pluginServiceProvider.GetRequiredService<IPlugin>();
 
-            var loadedPlugin = new LoadedPlugin(pluginInfo, context, pluginServiceProvider, instance, false);
+            var loadedPlugin = new LoadedPlugin(pluginInfo, context, pluginServiceProvider, instance);
 
             instance.Startup();
             loadedPlugins.Add(loadedPlugin);
@@ -85,8 +77,7 @@ public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> log
             return;
 
         var plugin = loadedPlugins[pluginIndex];
-        if (!plugin.IsDead)
-            plugin.Instance.Shutdown();
+        plugin.Instance.Shutdown();
         sharedServiceContainer.Unregister(pluginId);
         plugin.ScopedServices.Dispose();
         plugin.Context.Unload();
@@ -97,14 +88,14 @@ public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> log
 
     private void UseDefaultServices(IServiceCollection collection, Type pluginType, PluginAttribute attribute)
     {
-        var sharedServiceContainerProxy = new SharedServiceContainerProxy(sharedServiceContainer, attribute.id);
+        var sharedServiceContainerProxy = new SharedServiceContainerProxy(provider, sharedServiceContainer, attribute.id);
 
         collection.AddLogging();
 
         collection.AddSingleton<SharedServiceContainerProxy>(sharedServiceContainerProxy);
         collection.AddSingleton<ISharedServiceContainer>(sharedServiceContainerProxy);
         collection.AddTransient(typeof(SharedService<>));
-        collection.AddSingleton<LagrangeService>(provider.GetRequiredService<LagrangeService>());
+        collection.AddSingleton<LgrService>();
 
         collection.AddSingleton<PluginAttribute>(attribute);
     }

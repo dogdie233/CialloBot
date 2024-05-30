@@ -7,11 +7,6 @@
     <PackageOutputPath>$(OutputPath)</PackageOutputPath>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="../CialloBot/CialloBot.csproj"></ProjectReference>
-    <ProjectReference Include="..\Lagrange.Core\Lagrange.Core\Lagrange.Core.csproj" />
-  </ItemGroup>
-
   <PropertyGroup>
     <PluginFolder>plugins</PluginFolder>
     <PluginPath>../CialloBot/$(OutputPath)$(PluginFolder)</PluginPath>
@@ -22,4 +17,14 @@
     <Copy SourceFiles="$(OutputPath)TestPlugin.dll;$(OutputPath)TestPlugin.pdb" DestinationFolder="../CialloBot/$(OutputPath)$(PluginFolder)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(OutputPath)TestPlugin.deps.json" Condition="Exists('$(OutputPath)TestPlugin.deps.json')" DestinationFolder="../CialloBot/$(OutputPath)$(PluginFolder)" SkipUnchangedFiles="true" />
   </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CialloBot\CialloBot.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="CialloBot">
+      <HintPath>..\CialloBot\bin\Debug\net8.0\CialloBot.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>

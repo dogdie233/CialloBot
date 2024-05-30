@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestPlugin", "TestPlugin\Te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lagrange.Core", "Lagrange.Core\Lagrange.Core\Lagrange.Core.csproj", "{16D1BAC2-2F8B-4DDD-81C6-B3AD7D2BE46B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CialloBot.SourceGenerator", "CialloBot.SourceGenerator\CialloBot.SourceGenerator.csproj", "{F85A59E4-28E3-4F61-A5EF-94FE517DF08E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{16D1BAC2-2F8B-4DDD-81C6-B3AD7D2BE46B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{16D1BAC2-2F8B-4DDD-81C6-B3AD7D2BE46B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{16D1BAC2-2F8B-4DDD-81C6-B3AD7D2BE46B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F85A59E4-28E3-4F61-A5EF-94FE517DF08E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F85A59E4-28E3-4F61-A5EF-94FE517DF08E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F85A59E4-28E3-4F61-A5EF-94FE517DF08E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F85A59E4-28E3-4F61-A5EF-94FE517DF08E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

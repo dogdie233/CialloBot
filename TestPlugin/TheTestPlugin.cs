@@ -1,5 +1,5 @@
 ﻿using CialloBot.Plugin;
-using CialloBot.Services;
+using CialloBot.Plugin.ServiceWrapper;
 
 using Lagrange.Core;
 using Lagrange.Core.Common.Interface.Api;
@@ -8,6 +8,7 @@ using Lagrange.Core.Message;
 using Lagrange.Core.Message.Entity;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace TestPlugin;
@@ -16,32 +17,49 @@ namespace TestPlugin;
 public class TheTestPlugin : IPlugin
 {
     private readonly ILogger<TheTestPlugin> logger;
-    private readonly LagrangeService lagrangeService;
+    private readonly LgrService lgr;
 
-    public TheTestPlugin(ILogger<TheTestPlugin> logger, LagrangeService lagrangeService)
+    public TheTestPlugin(ILogger<TheTestPlugin> logger, LgrService lgr)
     {
         this.logger = logger;
-        this.lagrangeService = lagrangeService;
+        this.lgr = lgr;
     }
 
     public void Startup()
     {
-        lagrangeService.BotContext.Invoker.OnGroupMessageReceived += OnGroupMessageReceived;
+        lgr.OnGroupMessageReceived += OnGroupMessageReceived;
+        MyLogger.bot = lgr.BotContext;
     }
 
     public void Shutdown()
     {
-        lagrangeService.BotContext.Invoker.OnGroupMessageReceived -= OnGroupMessageReceived;
+        lgr.OnGroupMessageReceived -= OnGroupMessageReceived;
     }
 
     private void OnGroupMessageReceived(BotContext bot, GroupMessageEvent @event)
     {
-        if (@event.Chain.FirstOrDefault() is not TextEntity text || text is not { Text: "ping" })
-            return;
+        if (@event.Chain.FirstOrDefault() is TextEntity text)
+        {
+            if (text.Text == "ping")
+            {
+                bot.SendMessage(MessageBuilder.Group(@event.Chain.GroupUin!.Value)
+                    .Forward(@event.Chain)
+                    .Text("pong")
+                    .Build());
+            }
+            else if (text.Text == "throw")
+            {
+                throw new Exception("Test exception");
+            }
+        }        
+    }
 
-        bot.SendMessage(MessageBuilder.Group(@event.Chain.GroupUin!.Value)
-            .Forward(@event.Chain)
-            .Text("pong")
-            .Build());
+    public static void ConfigService(IServiceCollection collection)
+    {
+        collection.AddLogging(builder =>
+        {
+            builder.AddConsole();
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, BotLoggerProvider>());
+        });
     }
 }

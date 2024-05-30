@@ -109,6 +109,15 @@ public class PluginHelper(ILogger<PluginHelper> logger, IHostEnvironment hostEnv
         });
     }
 
+    public void UnloadAllPlugin()
+    {
+        var manager = serviceProvider.GetRequiredService<PluginManager>();
+
+        var plugins = manager.LoadedPlugins.ToArray();
+        foreach (var plugin in plugins)
+            manager.UnloadPlugin(plugin.Info.Id);
+    }
+
     internal async Task InitPlugins()
     {
         var plugins = await FindAllInPluginFolderAsync();

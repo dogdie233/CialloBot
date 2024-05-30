@@ -31,4 +31,4 @@ builder.Services.AddHostedService<App>();
 var host = builder.Build();
 
 // Run
-await host.StartAsync();
+await host.RunAsync();

@@ -63,7 +63,7 @@ public partial class LgrService
     }}
 
     {eventsSource}
-}
+}}
 ";
             context.AddSource("LgrService.Events.g.cs", classSource);
         }

@@ -40,16 +40,18 @@ public class TheTestPlugin : IPlugin
     {
         if (@event.Chain.FirstOrDefault() is TextEntity text)
         {
-            if (text.Text == "ping")
+            if (text.Text == "/ping")
             {
                 bot.SendMessage(MessageBuilder.Group(@event.Chain.GroupUin!.Value)
                     .Forward(@event.Chain)
                     .Text("pong")
                     .Build());
             }
-            else if (text.Text == "throw")
+            else if (text.Text == "/throw")
             {
-                throw new Exception("Test exception");
+                var name = @event.Chain.GroupMemberInfo?.MemberName;
+                if (name != null)
+                    throw new Exception($"笨蛋{name}丢出了一个报错！");
             }
         }        
     }

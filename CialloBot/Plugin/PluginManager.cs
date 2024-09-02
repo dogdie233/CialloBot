@@ -6,6 +6,7 @@ using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 
@@ -32,6 +33,7 @@ public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> log
         if (pluginAttribute is null)
             ThrowHelper.ThrowInvalidOperationException($"Couldn't detect the plugin info in {pluginPath}");
 
+        logger.LogInformation($"Loading plugin {pluginPath}");
         // Unload old plugin
         var pluginInfo = PluginInfo.CreateFromAttribute(pluginAttribute, pluginPath);
         if (loadedPlugins.Exists(p => p.Info.Id == pluginInfo.Id))
@@ -42,7 +44,11 @@ public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> log
 
         // Load plugin assembly
         var context = new PluginLoadContext(ref pluginInfo, defaultDependencyContext, this, pluginHelper);
-        var assembly = context.LoadFromAssemblyPath(pluginPath);
+        Assembly assembly;
+        using (var fs = File.OpenRead(pluginPath))
+        {
+            assembly = context.LoadFromStream(fs);
+        }
 
         // Create plugin service scoped provider
         var pluginType = pluginHelper.FindPluginType(assembly)!;
@@ -62,6 +68,8 @@ public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> log
 
             instance.Startup();
             loadedPlugins.Add(loadedPlugin);
+
+            logger.LogInformation($"Plugin {loadedPlugin.Info.Id} have been loaded");
         }
         catch (Exception ex)
         {
@@ -75,14 +83,20 @@ public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> log
         var pluginIndex = loadedPlugins.FindIndex(plugin => plugin.Info.Id == pluginId);
         if (pluginIndex == -1)
             return;
+        
+        logger.LogInformation($"Unloading plugin {pluginId}");
 
         var plugin = loadedPlugins[pluginIndex];
         plugin.Instance.Shutdown();
         sharedServiceContainer.Unregister(pluginId);
         plugin.ScopedServices.Dispose();
         plugin.Context.Unload();
+        plugin = default;
         loadedPlugins.RemoveAt(pluginIndex);
 
+        GC.Collect();
+
+        logger.LogInformation($"Plugin {pluginId} have been unloaded");
         // 其他依赖于这个插件的插件，又如何呢？
     }
 

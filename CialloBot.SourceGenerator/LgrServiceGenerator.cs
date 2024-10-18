@@ -29,7 +29,8 @@ private void Wrapper{eventName}(BotContext context, {eventArgType.ToString()} e)
     }}
     catch (Exception ex)
     {{
-        logger.LogError(ex, $""An exception was occurred when executing event {eventName} in plugin {{this.pluginId}}"");
+        var wrappedEx = new BotEventException(""{eventName}"", e, ex);
+        logger.LogError(wrappedEx, $""An exception was occurred when executing event {eventName} in plugin {{this.pluginId}}"");
     }}
 }}";
                 bindSource += $"this.GlobalInvoker.{eventName} += Wrapper{eventName};\n";

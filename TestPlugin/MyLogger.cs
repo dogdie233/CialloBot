@@ -6,10 +6,17 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
+
+using CialloBot;
 
 using Lagrange.Core;
 using Lagrange.Core.Message;
 using Lagrange.Core.Common.Interface.Api;
+using Lagrange.Core.Event;
+using Lagrange.Core.Event.EventArg;
+
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace TestPlugin;
 
@@ -18,7 +25,7 @@ public class BotLoggerProvider(IServiceProvider sp) : ILoggerProvider
     private ConsoleLoggerProvider? clp;
 
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_formatters")]
-    private extern static ref ConcurrentDictionary<string, ConsoleFormatter> GetFormatters(ConsoleLoggerProvider instance);
+    private static extern ref ConcurrentDictionary<string, ConsoleFormatter> GetFormatters(ConsoleLoggerProvider instance);
 
     ConcurrentDictionary<string, MyLogger> _loggers = new();
 
@@ -33,7 +40,7 @@ public class BotLoggerProvider(IServiceProvider sp) : ILoggerProvider
     }
 }
 
-internal sealed class MyLogger : ILogger
+internal sealed partial class MyLogger : ILogger
 {
     public static BotContext? bot;
     private readonly string _name;
@@ -54,26 +61,33 @@ internal sealed class MyLogger : ILogger
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
-        if (!IsEnabled(logLevel))
+        if (!IsEnabled(logLevel) || bot == null)
             return;
 
-        if (t_stringWriter == null)
-            t_stringWriter = new StringWriter();
+        t_stringWriter ??= new StringWriter();
 
-        LogEntry<TState> logEntry = new LogEntry<TState>(logLevel, _name, eventId, state, exception, formatter);
+        var logEntry = new LogEntry<TState>(logLevel, _name, eventId, state, exception, formatter);
         this.formatter.Write(in logEntry, ScopeProvider, t_stringWriter);
-        StringBuilder stringBuilder = t_stringWriter.GetStringBuilder();
-        if (stringBuilder.Length != 0)
-        {
-            string message = stringBuilder.ToString();
-            stringBuilder.Clear();
-            if (stringBuilder.Capacity > 1024)
-            {
-                stringBuilder.Capacity = 1024;
-            }
+        var stringBuilder = t_stringWriter.GetStringBuilder();
+        if (stringBuilder.Length == 0)
+            return;
 
-            // bot?.SendMessage(MessageBuilder.Group().Text(message).Build());
-        }
+        var message = stringBuilder.ToString();
+        stringBuilder.Clear();
+        if (stringBuilder.Capacity > 1024)
+            stringBuilder.Capacity = 1024;
+
+        if (exception is not BotEventException botEventException)
+            return;
+
+        var messageBuilder = BakaLogDestFinder.TryMakeDest(botEventException.Event);
+        if (messageBuilder == null)
+            return;
+
+        message = ShowerString(message);
+        messageBuilder.Text(message)
+            .GreyTip("你已被移出群聊");
+        bot.SendMessage(messageBuilder.Build());
     }
 
     public bool IsEnabled(LogLevel logLevel)
@@ -85,6 +99,15 @@ internal sealed class MyLogger : ILogger
     {
         return ScopeProvider?.Push(state) ?? NullDisposable.instance;
     }
+
+    /// <summary>
+    /// Remove color code from string
+    /// </summary>
+    private static string ShowerString(string str)
+        => AnsiColorRegex().Replace(str, "");
+
+    [GeneratedRegex(@"\x1B\[[0-?]*[ -/]*[@-~]")]
+    private static partial Regex AnsiColorRegex();
 }
 
 internal sealed class NullDisposable : IDisposable

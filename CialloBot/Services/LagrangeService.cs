@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-
-using CialloBot.Models;
+﻿using CialloBot.Models;
 using CialloBot.Utils;
 
 using Lagrange.Core;
@@ -31,6 +29,12 @@ public class LagrangeService : IDisposable
     private readonly IOptions<LagrangeSettingModel> setting;
     private readonly BotConfig botConfig;
     private BotContext? botContext;
+    
+    static LagrangeService()
+    {
+        urlSignerType = typeof(BotContext).Assembly.GetType("Lagrange.Core.Utility.Sign.UrlSigner")!;
+        Guard.IsNotNull(urlSignerType);
+    }
 
     public LagrangeService(ILogger<LagrangeService> logger,
         ILogger<BotContext> botLogger,
@@ -45,7 +49,8 @@ public class LagrangeService : IDisposable
         {
             AutoReLogin = true,
             GetOptimumServer = true,
-            CustomSignProvider = new CustomSigner(setting.Value.SignerUrl),
+            CustomSignProvider = setting.Value.SignerUrl == null ? null :
+                (SignProvider)Activator.CreateInstance(urlSignerType, setting.Value.SignerUrl)!,
         };
     }
 

@@ -11,9 +11,9 @@ public class App(LagrangeService lagrangeService, ILogger<App> logger, PluginHel
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         logger.LogInformation("Logging ...");
-        await lagrangeService.Login();
+        await lagrangeService.Login().WaitAsync(cancellationToken);
         logger.LogInformation("Login succeed, loading plugins ...");
-        await pluginHelper.InitPlugins();
+        await pluginHelper.InitPlugins().WaitAsync(cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken)

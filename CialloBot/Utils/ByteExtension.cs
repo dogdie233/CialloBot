@@ -61,6 +61,20 @@ public static class ByteExtension
         return result;
     }
 
+    public static byte[] UnHex(this string hex)
+    {
+        if (hex.Length % 2 != 0) throw new ArgumentException("Invalid hex string");
+
+        return Convert.FromHexString(hex);
+    }
+    
+    public static byte[] UnHex(this ReadOnlySpan<char> hex)
+    {
+        if (hex.Length % 2 != 0) throw new ArgumentException("Invalid hex string");
+
+        return Convert.FromHexString(hex);
+    }
+    
     public static string Md5(this byte[] bytes, bool lower = false)
     {
         using var md5 = MD5.Create();

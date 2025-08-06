@@ -143,7 +143,7 @@ public class PluginHelper(ILogger<PluginHelper> logger, IHostEnvironment hostEnv
             logger.LogInformation($"Load plugin {p.Path}");
             try
             {
-                pm.LoadPlugin(p.Path);
+                pm.TryLoadPlugin(p.Path);
             }
             catch (Exception e)
             {

@@ -10,6 +10,9 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+
 namespace CialloBot.Plugin;
 
 public readonly record struct PluginInfo(string Id, string Name, string Path)
@@ -19,19 +22,24 @@ public readonly record struct PluginInfo(string Id, string Name, string Path)
 }
 public readonly record struct LoadedPlugin(PluginInfo Info, PluginLoadContext Context, ServiceProvider ScopedServices, IPlugin Instance);
 
-public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> logger, SharedServiceContainer sharedServiceContainer, IServiceProvider provider)
+public class PluginManager(PluginHelper pluginHelper,
+    ILogger<PluginManager> logger,
+    ILogger<PluginLoadContext> loadContextLogger,
+    SharedServiceContainer sharedServiceContainer,
+    IServiceProvider provider,
+    IHostEnvironment env)
 {
     private List<LoadedPlugin> loadedPlugins = new();
     private AssemblyLoadContext defaultDependencyContext = AssemblyLoadContext.Default;
 
     public IReadOnlyList<LoadedPlugin> LoadedPlugins => loadedPlugins.AsReadOnly();
 
-    public void LoadPlugin(string pluginPath)
+    public void TryLoadPlugin(string pluginPath)
     {
         // Detect plugin
         var pluginAttribute = pluginHelper.DetectPlugin(pluginPath);
         if (pluginAttribute is null)
-            ThrowHelper.ThrowInvalidOperationException($"Couldn't detect the plugin info in {pluginPath}");
+            return;
 
         logger.LogInformation($"Loading plugin {pluginPath}");
         // Unload old plugin
@@ -43,7 +51,7 @@ public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> log
         }
 
         // Load plugin assembly
-        var context = new PluginLoadContext(ref pluginInfo, defaultDependencyContext, this, pluginHelper);
+        var context = new PluginLoadContext(ref pluginInfo, defaultDependencyContext, this, pluginHelper, loadContextLogger);
         Assembly assembly;
         using (var fs = File.OpenRead(pluginPath))
         {
@@ -104,7 +112,20 @@ public class PluginManager(PluginHelper pluginHelper, ILogger<PluginManager> log
     {
         var sharedServiceContainerProxy = new SharedServiceContainerProxy(provider, sharedServiceContainer, attribute.id);
 
-        collection.AddLogging();
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+        configBuilder.AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
+        configBuilder.AddJsonFile($"configs/{attribute.id}.json", optional: true, reloadOnChange: true);
+        configBuilder.AddEnvironmentVariables();
+        var config = configBuilder.Build();
+
+        collection.AddSingleton<IConfiguration>(config);
+        collection.AddOptions<PluginAttribute>("QWQ");
+        collection.AddLogging(builder =>
+        {
+            builder.AddConfiguration(config.GetSection("Logging"));
+            builder.AddConsole();
+        });
 
         collection.AddSingleton<SharedServiceContainerProxy>(sharedServiceContainerProxy);
         collection.AddSingleton<ISharedServiceContainer>(sharedServiceContainerProxy);

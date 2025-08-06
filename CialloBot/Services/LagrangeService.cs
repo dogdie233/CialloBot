@@ -32,12 +32,6 @@ public class LagrangeService : IDisposable
     private readonly BotConfig botConfig;
     private BotContext? botContext;
 
-    static LagrangeService()
-    {
-        urlSignerType = typeof(BotContext).Assembly.GetType("Lagrange.Core.Utility.Sign.UrlSigner")!;
-        Guard.IsNotNull(urlSignerType);
-    }
-
     public LagrangeService(ILogger<LagrangeService> logger,
         ILogger<BotContext> botLogger,
         ILagrangePersistentService persistentService,
@@ -47,12 +41,11 @@ public class LagrangeService : IDisposable
         this.botLogger = botLogger;
         this.persistentService = persistentService;
         this.setting = setting;
-        this.botConfig = new BotConfig()
+        this.botConfig = new BotConfig
         {
             AutoReLogin = true,
             GetOptimumServer = true,
-            CustomSignProvider = setting.Value.SignerUrl == null ? null :
-                (SignProvider)Activator.CreateInstance(urlSignerType, setting.Value.SignerUrl)!
+            CustomSignProvider = new CustomSigner(setting.Value.SignerUrl),
         };
     }
 
@@ -118,7 +111,7 @@ public class LagrangeService : IDisposable
             File.Delete(path);
         try
         {
-            var fs = File.Create(path);
+            using var fs = File.Create(path);
             fs.Write(imageData);
             return true;
         }
